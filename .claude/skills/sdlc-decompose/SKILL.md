@@ -59,7 +59,16 @@ proposal, not tickets.
    - `gh issue create --title <title> --body-file <file>` for each Feature
      and Task, then attach it to its parent via the spec's native sub-issue
      command.
-   - Add each ticket to the Project and set its `Type` field
-     (Epic/Feature/Task) and `Points` field per the spec.
+   - Set the ticket's native GitHub Issue Type (`gh issue edit <N> --type
+     Epic/Feature/Task`) **and** add it to the Project and set the custom
+     `Ticket Type` field (Epic/Feature/Task) plus the `Points` field, per
+     the spec — both `Type` signals, always together.
+   - Set every newly-created ticket's `Status` field to **`Backlog`**
+     explicitly — never leave it on whatever the Project's default option
+     happens to be (observed to silently default to `Todo` after the
+     board's first several items on at least one project). New tickets from
+     this skill always enter through Backlog; nothing skips straight to
+     Todo. Moving a ticket to Todo is a deliberate, separate act (see
+     `sdlc-technical-design`), not something ticket creation should do.
    - For every dependency in the proposal, apply both the `Blocked by #N`
      body line and the `dependency` label — together, per the spec.

@@ -13,11 +13,31 @@ edit freely before any skill starts relying on it.
 
 ## GitHub Project configuration
 
-**REVIEW** — fill in before any skill writes to the Project.
-
-- Project: `<OWNER>/<PROJECT_NUMBER>` — the GitHub Project (v2) board that
-  holds `Type`, `Status`, and `Points` as custom fields.
-- Repo: `<OWNER>/<REPO>` — the repo Issues and PRs live in.
+- Project: `Repped-Labs/8` — the GitHub Project (v2) board ("Repped Index",
+  https://github.com/orgs/Repped-Labs/projects/8) that holds `Ticket Type`,
+  `Status`, and `Points` as custom fields.
+- Repo: `Repped-Labs/repped-index` — the repo Issues and PRs live in.
+- **Two `Type` signals exist on this repo/org — set both, always together:**
+  1. **Native GitHub Issue Type** — a repo/org-level feature independent of
+     Projects. `Repped-Labs` already has `Epic`, `Feature`, `Task` (plus
+     `Bug`, `Spike`, `Initiative`, `Documentation`) defined as org issue
+     types. This is what shows in a Project's built-in **`Type`** column —
+     GitHub reserves the literal field name `Type` for it, which is why
+     `gh project field-create --name "Type"` fails with "reserved value."
+     Set it directly on the issue (not the Project item):
+     ```
+     gh issue edit <NUMBER> --type Epic   # or Feature / Task
+     ```
+  2. **Custom Project field `Ticket Type`** — a single-select field on this
+     Project (`Epic`/`Feature`/`Task` options) created because the native
+     `Type` name was unavailable. Set via the Project item, same as
+     `Points`:
+     ```
+     gh project item-edit --project-id <PROJECT_ID> --id <ITEM_ID> \
+       --field-id <TICKET_TYPE_FIELD_ID> --single-select-option-id <OPTION_ID>
+     ```
+  Both are kept in sync intentionally (not deduplicated) — a ticket with
+  only one set is inconsistent and should be fixed to have both.
 - Skills read/write Project fields via `gh project item-edit` (and
   `gh api graphql` for anything the `gh project` subcommands don't cover
   yet, e.g. resolving field/option IDs with `gh project field-list`). If
@@ -57,22 +77,24 @@ before what can start."
 
 ## Type field (primary hierarchy signal)
 
-**REVIEW** — field name and options, placeholder.
+Two `Type` signals — see Project configuration above for the full
+distinction — and every ticket gets **both**, set together, never one
+without the other:
 
-A single-select Project field named `Type` with options `Epic`, `Feature`,
-`Task`. Every issue on the Project board gets a `Type` value that matches
-its place in the hierarchy above — this is the **primary** signal skills
-read to determine whether an issue is an Epic, Feature, or Task; the `epic`
-label and sub-issue linking are supporting/structural signals, not the
-first thing to check. Set it with:
-```
-gh project item-edit --project-id <PROJECT_ID> --id <ITEM_ID> \
-  --field-id <TYPE_FIELD_ID> --single-select-option-id <OPTION_ID>
-```
+- **Native GitHub Issue Type** (`gh issue edit <NUMBER> --type Epic`, or
+  `Feature` / `Task`) — drives the Project's built-in `Type` column.
+- **Custom Project field `Ticket Type`** (`Epic`/`Feature`/`Task` options),
+  set via:
+  ```
+  gh project item-edit --project-id <PROJECT_ID> --id <ITEM_ID> \
+    --field-id <TICKET_TYPE_FIELD_ID> --single-select-option-id <OPTION_ID>
+  ```
+
+Together these are the **primary** signal skills read to determine whether
+an issue is an Epic, Feature, or Task; the `epic` label and sub-issue
+linking are supporting/structural signals, not the first thing to check.
 
 ## Status field
-
-**REVIEW** — column names, placeholder.
 
 ```
 Backlog → Todo → In Progress → In Review → Done
@@ -85,8 +107,6 @@ and read/write them via the Project field (`gh project item-edit`, or
 issue labels.
 
 ## Points field (estimates)
-
-**REVIEW** — Fibonacci scale, placeholder.
 
 A **number** Project field named `Points`, Fibonacci-scaled:
 
@@ -130,29 +150,43 @@ context.
 
 ## Dependencies (sequencing, not decomposition)
 
-**REVIEW** — placeholder convention.
-
 Dependencies express sequencing — "issue B can't start until issue A is
 done" — and are a separate concern from the parent/child hierarchy above.
 They are always written **two ways together**, never just one:
 
-1. A line in the blocked issue's body, under a `## Dependencies` heading:
+1. A line (single blocker) or a bulleted list (two or more blockers) in the
+   blocked issue's body, under a `## Dependencies` heading — every blocker
+   named there, none omitted:
+
+   Single blocker:
    ```
    ## Dependencies
 
    Blocked by #123
    ```
-2. The **same issue** also gets the `dependency` label applied:
+
+   Multiple blockers — always a list, one bullet per blocking issue, never
+   several bare `Blocked by #N` lines stacked without list markers:
+   ```
+   ## Dependencies
+
+   Blocked by:
+   - #123
+   - #456
+   ```
+2. The **same issue** also gets the `dependency` label applied — once, no
+   matter how many blockers it has:
    ```
    gh issue edit <BLOCKED_ISSUE_NUMBER> --add-label dependency
    ```
 
 Both steps are mandatory and always applied together — the label makes
 blocked issues filterable/queryable across the repo (`gh issue list --label
-dependency`) without opening every body, and the body line names *which*
-issue is the blocker. A skill that adds a `Blocked by #N` line without also
-applying the `dependency` label (or vice versa) has done the convention
-wrong.
+dependency`) without opening every body, and the body line(s) name *which*
+issue(s) are the blocker(s). A skill that adds a `Blocked by` line/list
+without also applying the `dependency` label (or vice versa) has done the
+convention wrong — and a skill that lists a blocked issue's dependencies
+without naming every one of its blockers has also done it wrong.
 
 ## How skills use this file
 
